@@ -4,7 +4,6 @@ import type React from "react"
 
 import { use, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useRouter } from "next/navigation"
 import { getMerchant, getMerchantProducts } from "@/lib/mock-data"
 import { GlassCard } from "@/components/glass-card"
 import { Button } from "@/components/ui/button"
@@ -12,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { CheckoutItem } from "@/lib/types"
 import {
-  ShoppingBag,
   User,
   Mail,
   Phone,
@@ -32,7 +30,6 @@ interface CheckoutPageProps {
 
 export default function CheckoutPage({ params }: CheckoutPageProps) {
   const { merchant_slug } = use(params)
-  const router = useRouter()
   const merchant = getMerchant(merchant_slug)
   const products = getMerchantProducts(merchant_slug)
 
@@ -89,7 +86,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   const brandColor = merchant.brandColor || "#10B981"
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] mesh-gradient flex items-center justify-center p-4 md:p-6">
+    <div className="min-h-screen bg-[#0A0C10] flex items-center justify-center p-4 md:p-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <AnimatePresence mode="wait">
           {isComplete ? (
@@ -142,16 +139,24 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
             </motion.div>
           ) : (
             <motion.div key="checkout" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {/* Merchant Header with Dynamic Branding */}
               <div
                 className="rounded-t-3xl p-6 text-center"
-                style={{ backgroundColor: `${brandColor}20`, borderBottom: `1px solid ${brandColor}40` }}
+                style={{ backgroundColor: `${brandColor}15`, borderBottom: `1px solid ${brandColor}30` }}
               >
+                {/* Merchant Logo or Initial */}
                 <div
-                  className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg"
-                  style={{ backgroundColor: brandColor }}
+                  className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg overflow-hidden"
+                  style={{ backgroundColor: merchant.logoUrl ? "transparent" : brandColor }}
                 >
-                  <ShoppingBag className="w-7 h-7 text-white" />
+                  {merchant.logoUrl ? (
+                    <img
+                      src={merchant.logoUrl || "/placeholder.svg"}
+                      alt={merchant.businessName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl font-black text-white">{merchant.businessName.charAt(0)}</span>
+                  )}
                 </div>
                 <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: brandColor }}>
                   Paying To
@@ -160,69 +165,84 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                 {merchant.description && <p className="text-muted-foreground text-sm mt-1">{merchant.description}</p>}
               </div>
 
-              {/* Progress Indicator */}
+              {/* Progress Indicator - 2 Steps */}
               <div className="flex items-center justify-center gap-4 py-6 bg-white/[0.02]">
-                {[1, 2].map((s) => (
-                  <div key={s} className="flex items-center gap-2">
+                {[
+                  { num: 1, label: "User Info" },
+                  { num: 2, label: "Payment" },
+                ].map((s) => (
+                  <div key={s.num} className="flex items-center gap-2">
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all`}
                       style={{
-                        backgroundColor: s <= step ? brandColor : "rgba(255,255,255,0.05)",
-                        color: s <= step ? "black" : "rgba(255,255,255,0.5)",
+                        backgroundColor: s.num <= step ? brandColor : "rgba(255,255,255,0.05)",
+                        color: s.num <= step ? "white" : "rgba(255,255,255,0.5)",
                       }}
                     >
-                      {s < step ? <CheckCircle2 className="w-4 h-4" /> : s}
+                      {s.num < step ? <CheckCircle2 className="w-4 h-4" /> : s.num}
                     </div>
                     <span
                       className={`text-[10px] font-bold uppercase tracking-widest ${
-                        s <= step ? "text-foreground" : "text-muted-foreground"
+                        s.num <= step ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
-                      {s === 1 ? "Info" : "Pay"}
+                      {s.label}
                     </span>
-                    {s < 2 && (
+                    {s.num < 2 && (
                       <div
                         className="w-8 h-0.5 transition-all"
-                        style={{ backgroundColor: s < step ? brandColor : "rgba(255,255,255,0.1)" }}
+                        style={{ backgroundColor: s.num < step ? brandColor : "rgba(255,255,255,0.1)" }}
                       />
                     )}
                   </div>
                 ))}
               </div>
 
-              {/* Cart Summary */}
-              <GlassCard className="mx-4 mb-4 p-4 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Order Summary
-                  </span>
-                  <span
-                    className="text-xs font-black px-3 py-1 rounded-full"
-                    style={{ backgroundColor: `${brandColor}20`, color: brandColor }}
-                  >
-                    {totalQuantity} Units
-                  </span>
+              <GlassCard className="mx-4 mb-4 p-5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-1">
+                      Order Summary
+                    </span>
+                    {/* Bold Quantity Tag */}
+                    <span
+                      className="text-sm font-black px-4 py-2 rounded-lg inline-block"
+                      style={{ backgroundColor: `${brandColor}20`, color: brandColor }}
+                    >
+                      {totalQuantity} Units
+                    </span>
+                  </div>
+                  {/* Total PKR only */}
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-1">
+                      Total
+                    </span>
+                    <span className="text-2xl font-black" style={{ color: brandColor }}>
+                      PKR {totalAmount.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2 max-h-32 overflow-y-auto">
+                {/* Collapsible item list - minimal */}
+                <div className="mt-4 pt-4 border-t border-white/5 space-y-2 max-h-24 overflow-y-auto">
                   {cart.map((item) => (
                     <div
                       key={item.productId}
-                      className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+                      className="flex items-center justify-between py-1 text-sm text-muted-foreground"
                     >
-                      <span className="text-sm font-medium truncate flex-1">{item.name}</span>
+                      <span className="truncate flex-1">{item.name}</span>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => updateQuantity(item.productId, -1)}
                           className="w-6 h-6 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
                         >
                           {item.quantity === 1 ? (
-                            <Trash2 className="w-3 h-3 text-destructive" />
+                            <Trash2 className="w-3 h-3 text-red-400" />
                           ) : (
                             <Minus className="w-3 h-3" />
                           )}
                         </button>
-                        <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
+                        <span className="w-6 text-center font-bold text-foreground">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.productId, 1)}
                           className="w-6 h-6 rounded bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
@@ -233,19 +253,13 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     </div>
                   ))}
                 </div>
-
-                <div className="border-t border-white/10 pt-3 mt-3 flex justify-between items-center">
-                  <span className="font-bold text-sm">Total</span>
-                  <span className="text-xl font-black" style={{ color: brandColor }}>
-                    PKR {totalAmount.toLocaleString()}
-                  </span>
-                </div>
               </GlassCard>
 
               {/* Form Section */}
               <GlassCard variant="elevated" className="mx-4 p-6 rounded-b-3xl rounded-t-xl">
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <AnimatePresence mode="wait">
+                    {/* Step 1: User Info */}
                     {step === 1 ? (
                       <motion.div
                         key="step1"
@@ -306,6 +320,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                         </div>
                       </motion.div>
                     ) : (
+                      /* Step 2: Payment */
                       <motion.div
                         key="step2"
                         initial={{ opacity: 0, x: 10 }}
@@ -322,8 +337,12 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                               <button
                                 key={method}
                                 type="button"
-                                className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-bold focus:ring-2"
-                                style={{ "--tw-ring-color": brandColor } as React.CSSProperties}
+                                className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-bold focus:ring-2 focus:border-transparent"
+                                style={
+                                  {
+                                    "--tw-ring-color": brandColor,
+                                  } as React.CSSProperties
+                                }
                               >
                                 {method}
                               </button>
@@ -364,7 +383,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     <Button
                       type="submit"
                       disabled={isProcessing || cart.length === 0}
-                      className="flex-1 py-5 rounded-xl font-bold uppercase tracking-widest shadow-lg group"
+                      className="flex-1 py-5 rounded-xl font-bold uppercase tracking-widest shadow-lg group text-white"
                       style={{
                         backgroundColor: brandColor,
                         boxShadow: `0 10px 40px -10px ${brandColor}50`,

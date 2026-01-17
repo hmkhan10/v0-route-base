@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useState } from "react"
 import { notFound, redirect } from "next/navigation"
 import { getMerchant, getEcommerceMetrics, getSaaSMetrics, showDashboard } from "@/lib/mock-data"
 import { EcommerceDashboard } from "@/components/ecommerce-dashboard"
@@ -16,6 +16,10 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   const { merchant_slug } = use(params)
   const merchant = getMerchant(merchant_slug)
 
+  const [viewMode, setViewMode] = useState<"ecommerce" | "saas">(
+    merchant?.planType === "SaaS-Max" ? "saas" : "ecommerce",
+  )
+
   if (!merchant) {
     notFound()
   }
@@ -25,8 +29,8 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     redirect(`/${merchant_slug}/transactions`)
   }
 
-  const isEcommerce = merchant.planType === "Ecommerce-Pro"
-  const metrics = isEcommerce ? getEcommerceMetrics(merchant.id) : getSaaSMetrics(merchant.id)
+  const showSaaS = merchant.planType === "SaaS-Max" && viewMode === "saas"
+  const metrics = showSaaS ? getSaaSMetrics(merchant.id) : getEcommerceMetrics(merchant.id)
 
   return (
     <div className="min-h-screen bg-[#0A0C10] flex">
@@ -34,14 +38,16 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         merchantSlug={merchant_slug}
         planType={merchant.planType}
         businessName={merchant.businessName}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       <main className="ml-72 flex-1 p-10">
         <PageTransition>
-          {isEcommerce ? (
-            <EcommerceDashboard merchant={merchant} metrics={metrics} />
-          ) : (
+          {showSaaS ? (
             <SaaSDashboard merchant={merchant} metrics={metrics as ReturnType<typeof getSaaSMetrics>} />
+          ) : (
+            <EcommerceDashboard merchant={merchant} metrics={metrics} />
           )}
         </PageTransition>
       </main>

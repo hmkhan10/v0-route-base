@@ -6,11 +6,12 @@ import { notFound } from "next/navigation"
 import { getMerchant, showDashboard } from "@/lib/mock-data"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { GlassCard } from "@/components/glass-card"
+import { UpgradeModal } from "@/components/upgrade-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PageTransition } from "@/components/page-transition"
-import { Building, Mail, Phone, Globe, Palette, Save, CreditCard, Shield } from "lucide-react"
+import { Building, Mail, Phone, Globe, Palette, Save, CreditCard, Shield, Upload, Check } from "lucide-react"
 
 interface SettingsPageProps {
   params: Promise<{ merchant_slug: string }>
@@ -20,6 +21,9 @@ export default function SettingsPage({ params }: SettingsPageProps) {
   const { merchant_slug } = use(params)
   const merchant = getMerchant(merchant_slug)
   const [isSaving, setIsSaving] = useState(false)
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
+  const [urlSlug, setUrlSlug] = useState(merchant?.slug || "")
+  const [logoFile, setLogoFile] = useState<File | null>(null)
 
   if (!merchant) {
     notFound()
@@ -77,11 +81,17 @@ export default function SettingsPage({ params }: SettingsPageProps) {
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                         URL Slug
                       </Label>
-                      <Input
-                        defaultValue={merchant.slug}
-                        className="py-5 bg-white/5 border-white/10 rounded-xl font-mono"
-                        disabled
-                      />
+                      <div className="flex items-center">
+                        <span className="px-4 py-3 bg-white/5 border border-white/10 border-r-0 rounded-l-xl text-muted-foreground text-sm">
+                          routebase.pk/
+                        </span>
+                        <Input
+                          value={urlSlug}
+                          onChange={(e) => setUrlSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                          className="py-5 bg-white/5 border-white/10 rounded-l-none rounded-r-xl font-mono"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Your unique checkout URL for customers</p>
                     </div>
                   </div>
 
@@ -143,6 +153,39 @@ export default function SettingsPage({ params }: SettingsPageProps) {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      Business Logo
+                    </Label>
+                    <div
+                      className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-emerald-500/30 transition-colors cursor-pointer"
+                      onClick={() => document.getElementById("logo-upload-settings")?.click()}
+                    >
+                      <input
+                        id="logo-upload-settings"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                      />
+                      {logoFile ? (
+                        <div className="flex items-center justify-center gap-3">
+                          <Check className="w-5 h-5 text-emerald-400" />
+                          <span className="font-medium">{logoFile.name}</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">Click to upload your logo</p>
+                          <p className="text-xs text-muted-foreground">PNG, JPG up to 2MB</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Your logo will appear on checkout pages instead of RouteBase branding
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Brand Color
                     </Label>
                     <div className="flex items-center gap-4">
@@ -160,7 +203,8 @@ export default function SettingsPage({ params }: SettingsPageProps) {
 
                   <div className="p-4 bg-white/5 rounded-xl">
                     <p className="text-sm text-muted-foreground">
-                      Your brand color is used on your checkout page header and call-to-action buttons.
+                      Your brand color and logo are used on your checkout page header and call-to-action buttons,
+                      replacing RouteBase branding with your own.
                     </p>
                   </div>
                 </div>
@@ -185,7 +229,10 @@ export default function SettingsPage({ params }: SettingsPageProps) {
                         : "Upgrade for dashboard access"}
                     </p>
                   </div>
-                  <Button className="bg-purple-500 hover:bg-purple-600 font-bold uppercase tracking-widest text-xs">
+                  <Button
+                    onClick={() => setIsUpgradeModalOpen(true)}
+                    className="bg-purple-500 hover:bg-purple-600 font-bold uppercase tracking-widest text-xs"
+                  >
                     Upgrade Plan
                   </Button>
                 </div>
@@ -215,7 +262,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full justify-start border-white/10 py-5 rounded-xl text-destructive hover:bg-destructive/10 bg-transparent"
+                    className="w-full justify-start border-white/10 py-5 rounded-xl text-red-400 hover:bg-red-500/10 bg-transparent"
                   >
                     Delete Account
                   </Button>
@@ -246,6 +293,12 @@ export default function SettingsPage({ params }: SettingsPageProps) {
           </div>
         </PageTransition>
       </main>
+
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        currentPlan={merchant.planType}
+      />
     </div>
   )
 }
